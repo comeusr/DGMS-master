@@ -18,7 +18,6 @@ from dataloader import make_data_loader
 from modeling import SQSNet
 from modeling.SQS import SQSConv
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
-from utils.loss import *
 from utils.misc import freeze_param, get_device
 from utils.watch import Sparsity, EpochMonitor
 from utils.algorithm import GMM_Pruning
