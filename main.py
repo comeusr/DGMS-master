@@ -13,7 +13,6 @@ import config as cfg
 import copy
 import torchvision
 
-from mypath import Path
 from dataloader import make_data_loader
 from modeling import SQSNet
 from modeling.SQS import SQSConv
