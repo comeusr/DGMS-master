@@ -180,11 +180,7 @@ def main():
     # Load the pretrained model properly. 
     tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
     model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
-    # tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
-    # model = AutoModelForQuestionAnswering.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
-    # model_checkpoint = "distilbert-base-uncased"
-    # tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-    # model = AutoModelForQuestionAnswering.from_pretrained(model_checkpoint)
+
     config = model.config
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -194,7 +190,6 @@ def main():
     doc_stride = args.doc_stride
 
 
-    # model = HuggingFaceModel(model, tokenizer=tokenizer, use_logits=True)    
     
     pad_on_right = tokenizer.padding_side == "right"
         # Training preprocessing
@@ -365,18 +360,12 @@ def main():
         references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
     
-        
-    # tokenized_data=raw_datasets.map(preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names)
 
-    # train_loader = j
-    # print(len(raw_datasets))
 
     tokenized_train_data = raw_datasets['train'].map(prepare_train_features, 
                                                     batched=True, 
                                                     remove_columns=raw_datasets['train'].column_names,
                                                     )
-    # print(tokenized_train_data)
-    # print('Print tokenized_train_data len {}'.format(len(tokenized_train_data)))
 
     tokenized_train_data.set_format('torch')
 
@@ -403,8 +392,7 @@ def main():
         batch_size=args.batch_size,
     )
 
-    # cfg.PRUNE_END_STEP = len(train_loader)*float(args.prune_end.replace('ep', ''))
-    # cfg.PRUNE_START_STEP = len(train_loader)*float(args.warm_up.replace('ep', ''))
+
 
     metric = evaluate.load('squad')
 
@@ -415,13 +403,7 @@ def main():
     cfg.PRUNE_START_STEP = len(train_dataloader)*args.prune_start
 
 
-    # optimizer = DecoupledAdamW(
-    #     model.parameters(),
-    #     lr=args.lr,
-    #     betas=(0.9, 0.999),
-    #     eps=1e-08,
-    #     weight_decay=args.weight_decay
-    # )
+
 
     optimizer = AdamW(
         model.parameters(),
@@ -443,13 +425,6 @@ def main():
         num_training_steps=cfg.PRUNE_END_STEP,
     )
 
-    # wandb.watch(model, log='all')
-
-    # wandb_logger = WandBLogger(
-    #     project=args.project_name,
-    #     name=args.run_name,
-    #     init_kwargs={'config': vars(args)}
-    # )
 
     # Report the unquantized full-precision model
     model.eval()
@@ -572,38 +547,4 @@ def main():
 if __name__ == '__main__':
 
     main()
-    # # config = AutoConfig.from_pretrained("google-bert/bert-base-cased")
-    # tokenizer = AutoTokenizer.from_pretrained("huggingface-course/bert-finetuned-squad")
-    # model = AutoModelForQuestionAnswering.from_pretrained("huggingface-course/bert-finetuned-squad")
-    # config = model.config
-
-    # print(model)
-    # print('-'*20)
-
-    # for name, module in tuple(model.named_modules()):
-    #     if name:
-    #         recursive_setattr(model, name, replace_attn_layer(module, config))
-
-    # # print(model)
-
-    # composer_model = HuggingFaceModel(model=model,tokenizer=tokenizer, use_logits=True)
-    # InitBertModel(composer_model, sigma=3)
-
-
-    # # print(composer_model)
-    # # print(composer_model.loss)
-
-    # # composer_model.loss
-
-    # # for name, m in model.named_modules():
-    # #     if isinstance(m, CustomizeBertSelfAttention):
-    # #         print(name)
-    # #         print(m)
-    # #         print('-'*20)
-
-
-    #     # if isinstance(m, BertAttention):
-    #     #     print('Find BertAttention')
-        
-        
-
+    

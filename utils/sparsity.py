@@ -1,4 +1,4 @@
-from modeling.DGMS import DGMSConv
+from modeling.SQS import SQSConv
 import torch
 import torch.nn as nn
 
@@ -53,7 +53,7 @@ class SparsityMeasure(object):
         total_weight_num = 0
         skipped_weight_num = 0
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 Pweight = m.get_Pweight()
                 sparse_ratio = check(Pweight, 'irregular')
                 total_sparsity_num += check_total_zero(Pweight)

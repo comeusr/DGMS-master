@@ -5,7 +5,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.distributions.bernoulli import Bernoulli
 import config as cfg
-from modeling.DGMS.GMM import *
+from modeling.SQS.GMM import *
 
 from typing import List, Optional, Tuple, Union
 

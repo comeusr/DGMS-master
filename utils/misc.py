@@ -12,7 +12,7 @@ import config as cfg
 from utils.cluster import kmeans, kmeans_predict
 from utils.lr_scheduler import get_scheduler
 from sklearn.mixture import GaussianMixture
-from modeling.DGMS import DGMSConv
+from modeling.SQS import SQSConv
 from torch_kmeans import KMeans
 from composer.models import ComposerModel
 
@@ -242,7 +242,7 @@ def get_optimizer(model, args):
 @torch.no_grad()
 def freeze_param(model):
     for name, m in model.named_modules():
-        if isinstance(m, DGMSConv):
+        if isinstance(m, SQSConv):
             m.weight.requires_grad=False
 
 def resume_ckpt(args, model, train_loader, optimizer, lr_scheduler):

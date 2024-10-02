@@ -4,14 +4,14 @@ import torch.nn as nn
 from composer.models import ComposerModel
 
 from .networks import get_network
-from modeling.DGMS import DGMSConv
+from modeling.SQS import SQSConv
 import torch.nn.functional as F
 import torchmetrics
 import config as cfg
 
-class DGMSNet(ComposerModel):
+class SQSNet(ComposerModel):
     def __init__(self, network, args, freeze_bn=False):
-        super(DGMSNet, self).__init__()
+        super(SQSNet, self).__init__()
         self.args = args
         self.network = network
         self.freeze_bn = freeze_bn
@@ -21,7 +21,7 @@ class DGMSNet(ComposerModel):
     def init_mask_params(self, sigma):
         print("--> Start to initialize sub-distribution parameters, this may take some time...")
         for name, m in self.network.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 m.init_mask_params(sigma)
                 # m.weight.data.xavier_uniform()
 

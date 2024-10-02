@@ -21,7 +21,6 @@ class BERT_PRUNER(Algorithm):
         self.f_alpha = 0.1
         self.alpha_f = alpha_f
         self.model = model
-        # self.pruning_scaling = 
         
 
     def caculate_mask_thresh(self, model, sparsity):
@@ -39,11 +38,7 @@ class BERT_PRUNER(Algorithm):
 
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
-        # print("Sparsity {}".format(sparsity))
-        # print("All IS {}".format(all_is))
-        # print("all_is dimension {}".format(all_is.shape))
-        # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
-        # print('K th smallest elemment {}'.format(int(sparsity*all_is.shape[0])))
+       
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
         return mask_thresh, is_dict
 
@@ -67,7 +62,6 @@ class BERT_PRUNER(Algorithm):
                     valuep = valueLayer.pruning_parameter/cfg.PRUNE_SCALE
                     valueLayer.pruning_parameter.grad.add_(torch.log(F.sigmoid(valuep)/(sp))*sigmoid_derivative(valuep))
                     
-                    # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
                     queryMu = queryLayer.mu
                     queryMu.grad.add_(queryMu, alpha=1/(queryLayer.init_sigma ** 2))
@@ -103,7 +97,6 @@ class BERT_PRUNER(Algorithm):
         else:
             sparsity = self.final_sparsity
             self.cur_sparsity = sparsity
-        # print('Fraction {}'.format(_frac))
         return sparsity
     
     def apply_mu_sigma_grad(self, model):

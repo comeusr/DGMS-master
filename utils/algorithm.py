@@ -1,7 +1,7 @@
 from composer.core import Algorithm, Event
 from composer.models import ComposerModel
 from composer import State
-from modeling.DGMS import DGMSConv
+from modeling.SQS import SQSConv
 import config as cfg
 import torch
 import math
@@ -27,16 +27,12 @@ class GMM_Pruning(Algorithm):
         # Ex: Finial_spasity 0.8, then prune the smallest 80% parameters
         is_dict = {}
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 is_dict[name] = m.sub_distribution.pruning_parameter.detach()
                 # print("is_dict_{} {}".format(name, is_dict[name]))
         
         all_is = torch.cat([is_dict[name].view(-1) for name in is_dict])
-        # print("Sparsity {}".format(sparsity))
-        # print("All IS {}".format(all_is))
-        # print("all_is dimension {}".format(all_is.shape))
-        # print("If kth less than total {}".format(int(sparsity*all_is.shape[0]) < all_is.shape[0]))
-        # print('K th smallest elemment {}'.format(int(sparsity*all_is.shape[0])))
+       
         mask_thresh = torch.kthvalue(all_is, int(sparsity*all_is.shape[0]))[0].item()
         return mask_thresh, is_dict
 
@@ -44,33 +40,22 @@ class GMM_Pruning(Algorithm):
         
         with torch.no_grad():
             for name, m in model.named_modules():
-                if isinstance(m, DGMSConv):
+                if isinstance(m, SQSConv):
                     # print("Applying sparsisty Gradients")
                     sp=0.01
                     layer = m.sub_distribution
                     p = layer.pruning_parameter/cfg.PRUNE_SCALE
                     layer.pruning_parameter.grad.add_(torch.log(F.sigmoid(p)/(sp))*sigmoid_derivative(p))
-                    # layer.pruning_parameter.grad.add_(torch.log((1-sp)/(1-F.sigmoid(p)))*sigmoid_derivative(p))
 
                     mu = layer.mu
                     mu.grad.add_(mu, alpha=1/(layer.init_sigma ** 2))
-
-                    # sigma = layer.sigma
-                    # sigma.grad.add_(sigma/(layer.init_sigma ** 2)- 1/sigma)
-                    
-                    
-                    # print('Pruning Gradients')
-                    # print(m.sub_distribution.pruning_parameter.grad)
-                    # print('Pruning Parameters')
-                    # print(m.sub_distribution.pruning_parameter)
         return      
     
     def generate_mask(self, model:ComposerModel, mask_thresh, is_dict):
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 m.sub_distribution.mask = (is_dict[name] < mask_thresh)
-                # print("Threshold {}".format(mask_thresh))
-                # print(m.sub_distribution.mask)
+
         return 
     
     def sparsity_scheduler(self, train_step):
@@ -81,14 +66,12 @@ class GMM_Pruning(Algorithm):
         else:
             sparsity = self.final_sparsity
             self.cur_sparsity = sparsity
-        # print('Fraction {}'.format(_frac))
         return sparsity
     
     def apply_mu_sigma_grad(self, model):
          with torch.no_grad():
             for name, m in model.named_modules():
-                if isinstance(m, DGMSConv):
-                    # print("Applying sparsisty Gradients")
+                if isinstance(m, SQSConv):
                     layer = m.sub_distribution
 
                     mu = layer.mu
@@ -102,61 +85,37 @@ class GMM_Pruning(Algorithm):
     def pruning_grad_true(self, model):
         # Set the pruning parameter grad equal to True
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 m.sub_distribution.pruning_parameter.requires_grad=True
     
     def pruning_grad_false(self, model):
         # Set the pruning parameter grad equal to False
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 m.sub_distribution.pruning_parameter.requires_grad=False
 
     def prune_with_mask(self, model):
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 mask = m.sub_distribution.mask
                 m.sub_distribution.pruning_parameter.detach().masked_fill_(mask, -0.1)
 
 
     def monitor_scheduler_step(self, state:State, logger):
         optimzier = state.optimizers[0]
-        # print(optimzier)
         for i in range(len(optimzier.param_groups)):
             lr = optimzier.param_groups[i]['lr']
             logger.log_metrics({'parameter_{}_lr'.format(i):lr})
 
         return
     
-    def customize_lr_schduler(self, state:State, step):
-
-        # optimizer = state.optimizers[0]
-        # for group in optimizer.param_groups:
-        #     print(group)
-        #     # group['lr'] = group['init_lr']*self.alpha_f*scale
-        with torch.no_grad():
-            print('Do Nothing')
-            # if step >= cfg.PRUNE_END_STEP:
-
-            #     print('Modify Optimizer Learning Rate.')
-                
-            #     frac = (step-cfg.PRUNE_END_STEP)/(cfg.TOT_TRAIN_STEP-cfg.PRUNE_END_STEP)
-            #     scale = self.f_alpha + (1-self.f_alpha)*0.5*(1+math.cos(math.pi*frac))
-                
-                
-                # optimizer = state.optimizers[0]
-                # for group in optimizer.param_groups:
-                #     group['lr'] = group['initial_lr']*self.alpha_f*scale
-
-        return
     
     def match(self, event, state):
         return event in [Event.BEFORE_TRAIN_BATCH, Event.AFTER_BACKWARD, Event.BATCH_START]
     
     def apply(self, event, state, logger):
         train_step = state.timestamp.batch.value
-        # if cfg.PRUNE and cfg.PRUNE_START_STEP > 0:
-        # TO DO
-        # Apply the KL-divergence gradients
+
         if event == Event.BEFORE_TRAIN_BATCH:
             # Prune the parameter according to the pruning parameters
             if cfg.PRUNE and (train_step <= cfg.PRUNE_START_STEP or train_step > cfg.PRUNE_END_STEP):

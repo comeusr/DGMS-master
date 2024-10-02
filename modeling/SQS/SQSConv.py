@@ -5,9 +5,8 @@ import torch.nn.functional as F
 import config as cfg
 from .GMM import *
 
-class DGMSConv(nn.Conv2d):
-    """ DGMS Convolution: 
-    Convolution operator based on Differentiable Gaussian Mixture Weight Sharing (DGMS) for model compression.
+class SQSConv(nn.Conv2d):
+    """ Convolution: 
     """
     def __init__(
         self,
@@ -21,7 +20,7 @@ class DGMSConv(nn.Conv2d):
         bias=False,
         padding_mode: str = 'zeros',
     ):
-        super(DGMSConv, self).__init__(
+        super(SQSConv, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation,
             groups, bias, padding_mode)
         self.is_normal = cfg.IS_NORMAL
@@ -62,7 +61,7 @@ class DGMSConv(nn.Conv2d):
 
 # unit test script
 if __name__ == '__main__':
-    m = DGMSConv(16, 33, 3, stride=2)
+    m = SQSConv(16, 33, 3, stride=2)
     input = torch.randn(20, 16, 50, 100)
     output = m(input)
     print(output.size())

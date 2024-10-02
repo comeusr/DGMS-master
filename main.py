@@ -15,8 +15,8 @@ import torchvision
 
 from mypath import Path
 from dataloader import make_data_loader
-from modeling import DGMSNet
-from modeling.DGMS import DGMSConv
+from modeling import SQSNet
+from modeling.SQS import SQSConv
 from utils.PyTransformer.transformers.torchTransformer import TorchTransformer
 from utils.loss import *
 from utils.misc import freeze_param, get_device
@@ -208,14 +208,14 @@ def main():
         model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
     
 
-    model = DGMSNet(model, args, args.freeze_bn)
+    model = SQSNet(model, args, args.freeze_bn)
 
     device = get_device()
 
 
     print("DGMS Conv!")
     _transformer = TorchTransformer()
-    _transformer.register(nn.Conv2d, DGMSConv)
+    _transformer.register(nn.Conv2d, SQSConv)
     model = _transformer.trans_layers(model)
 
 
@@ -223,19 +223,16 @@ def main():
     print("-" * 40 + "DGMS Model" + "-" * 40)
     if args.freeze_weight:
         for name, m in model.named_modules():
-            if isinstance(m, DGMSConv):
+            if isinstance(m, SQSConv):
                 m.weight.requires_grad=False
 
-    # if args.freeze_weight:
-    #     freeze_param(model)
+
 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     cfg.IS_NORMAL = False
 
     model.init_mask_params(args.prior_sigma)
 
-    # for name, p in model.named_parameters():
-    #     print
 
     optimizer = DecoupledAdamW(
         [{'params':model.pruning_paramters(), 'lr':args.prune_init_lr},
@@ -246,41 +243,20 @@ def main():
         weight_decay=args.weight_decay
     )
 
-    # pruner_optimzier = DecoupledAdamW(
-    #     model.network.parameters(),
-    #     lr = args.prune_init_lr,
-    #     betas=(0.9, 0.999),
-    #     eps=1e-8,
-    #     weight_decay=args.weight_decay
-    # )
 
     GMM_Pruner = GMM_Pruning(init_sparsity=args.init_sparsity, final_sparsity=args.final_sparsity, alpha_f=args.alpha_f)
 
-    # lr_scheduler = LinearWithWarmupScheduler(
-    #     t_warmup=args.t_warmup,
-    #     alpha_f=args.alpha_f
-    # )
 
 
     prune_end = float(args.prune_end.replace('ep', ''))
     mult = (epochs-prune_end)/prune_end
 
-    if args.dataset == 'cifar10':
-        # lr_scheduler  = LinearScheduler(
-        #     alpha_i=1,
-        #     alpha_f=args.alpha_f,
-        #     t_max='0.5dur'
-        # )
-        lr_scheduler = CosineAnnealingScheduler(
-            t_max='0.6dur',
-            alpha_f=args.alpha_f,
-        )
 
-    else:
-        lr_scheduler = CosineAnnealingScheduler(
-            t_max='0.5dur',
-            alpha_f=args.alpha_f,
-        )
+    lr_scheduler = CosineAnnealingScheduler(
+        t_max='0.5dur',
+        alpha_f=args.alpha_f,
+    )
+
 
     trainer = Trainer(
         model=model,
@@ -298,7 +274,6 @@ def main():
 
         # callbacks
         callbacks=[EpochMonitor(), LRMonitor(), OptimizerMonitor()],
-        # callbacks=[LRMonitor(), OptimizerMonitor()],
         algorithms=[GMM_Pruner],
         loggers=[WandBLogger()],
 
@@ -307,8 +282,7 @@ def main():
         save_folder=args.save_folder,
         save_filename="ep{epoch}",
         save_latest_filename="latest",
-        # autoresume=True,
-        # load_path=args.load_path,
+
         run_name=args.run_name,
 
         seed=args.seed

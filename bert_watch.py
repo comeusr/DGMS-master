@@ -1,6 +1,6 @@
 import wandb
 from composer import Callback, State, Logger, Event
-from modeling.DGMS import DGMSConv
+from modeling.SQS import SQSConv
 import torch.nn as nn
 import torch
 import numpy as np
@@ -43,7 +43,7 @@ class EpochMonitor(Callback):
             tot_numel = 0
             tot_zero_numel = 0
             for name, m in state.model.named_modules():
-                if isinstance(m, DGMSConv):
+                if isinstance(m, SQSConv):
                     with torch.no_grad():
                         data = m.sub_distribution.mu.detach().data.cpu().numpy()
                         P_weight = m.get_Pweight()
