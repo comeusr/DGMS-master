@@ -30,7 +30,7 @@ from composer.core import Evaluator
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Differentiable Gaussian Mixture Weight Sharing (DGMS)",
+    parser = argparse.ArgumentParser(description="SQS",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-b', '--network', type=str, default='resnet18',
                         choices=['resnet18', 'resnet50', 'mnasnet', 'proxylessnas',
